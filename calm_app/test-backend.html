@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeditAi Backend Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1B517E, #0D3550);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #FDD015;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .test-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196F3;
+            color: #2196F3;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        .status.loading {
+            background: #FF9800;
+            color: white;
+        }
+        .endpoint-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .endpoint-url {
+            font-family: monospace;
+            color: #FDD015;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧘 MeditAi Backend Test</h1>
+        
+        <div class="endpoint-info">
+            <strong>Backend URL:</strong> <span class="endpoint-url">http://168.231.66.116:3000</span>
+        </div>
+
+        <div class="test-section">
+            <h3>1️⃣ Health Check</h3>
+            <p>Test if the backend service is running and healthy.</p>
+            <button class="test-button" onclick="testHealth()">Test Health</button>
+            <div id="health-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2️⃣ API Documentation</h3>
+            <p>Get the API documentation and available endpoints.</p>
+            <button class="test-button" onclick="testAPI()">Get API Docs</button>
+            <div id="api-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3️⃣ Content Endpoint</h3>
+            <p>Test the content retrieval endpoint.</p>
+            <button class="test-button" onclick="testContent()">Get Content</button>
+            <div id="content-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4️⃣ Categories Endpoint</h3>
+            <p>Test the categories endpoint.</p>
+            <button class="test-button" onclick="testCategories()">Get Categories</button>
+            <div id="categories-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5️⃣ Search Endpoint</h3>
+            <p>Test the search functionality.</p>
+            <button class="test-button" onclick="testSearch()">Search Content</button>
+            <div id="search-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>6️⃣ Run All Tests</h3>
+            <p>Run all tests sequentially to verify the complete backend.</p>
+            <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+            <div id="all-tests-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://168.231.66.116:3000';
+        
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        function setButtonStatus(button, status, text) {
+            button.disabled = status === 'loading';
+            button.innerHTML = text;
+            if (status === 'loading') {
+                button.innerHTML += ' <span class="status loading">Loading...</span>';
+            } else if (status === 'success') {
+                button.innerHTML += ' <span class="status success">Success</span>';
+            } else if (status === 'error') {
+                button.innerHTML += ' <span class="status error">Failed</span>';
+            }
+        }
+
+        async function testHealth() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Test Health');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('health-result', JSON.stringify(data, null, 2), 'success');
+                    setButtonStatus(button, 'success', 'Test Health');
+                } else {
+                    showResult('health-result', `Error: ${response.status} - ${data.message || 'Unknown error'}`, 'error');
+                    setButtonStatus(button, 'error', 'Test Health');
+                }
+            } catch (error) {
+                showResult('health-result', `Network Error: ${error.message}`, 'error');
+                setButtonStatus(button, 'error', 'Test Health');
+            }
+        }
+
+        async function testAPI() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Get API Docs');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('api-result', JSON.stringify(data, null, 2), 'success');
+                    setButtonStatus(button, 'success', 'Get API Docs');
+                } else {
+                    showResult('api-result', `Error: ${response.status} - ${data.message || 'Unknown error'}`, 'error');
+                    setButtonStatus(button, 'error', 'Get API Docs');
+                }
+            } catch (error) {
+                showResult('api-result', `Network Error: ${error.message}`, 'error');
+                setButtonStatus(button, 'error', 'Get API Docs');
+            }
+        }
+
+        async function testContent() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Get Content');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('content-result', JSON.stringify(data, null, 2), 'success');
+                    setButtonStatus(button, 'success', 'Get Content');
+                } else {
+                    showResult('content-result', `Error: ${response.status} - ${data.message || 'Unknown error'}`, 'error');
+                    setButtonStatus(button, 'error', 'Get Content');
+                }
+            } catch (error) {
+                showResult('content-result', `Network Error: ${error.message}`, 'error');
+                setButtonStatus(button, 'error', 'Get Content');
+            }
+        }
+
+        async function testCategories() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Get Categories');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content/categories`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('categories-result', JSON.stringify(data, null, 2), 'success');
+                    setButtonStatus(button, 'success', 'Get Categories');
+                } else {
+                    showResult('categories-result', `Error: ${response.status} - ${data.message || 'Unknown error'}`, 'error');
+                    setButtonStatus(button, 'error', 'Get Categories');
+                }
+            } catch (error) {
+                showResult('categories-result', `Network Error: ${error.message}`, 'error');
+                setButtonStatus(button, 'error', 'Get Categories');
+            }
+        }
+
+        async function testSearch() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Search Content');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content/search?q=meditation`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('search-result', JSON.stringify(data, null, 2), 'success');
+                    setButtonStatus(button, 'success', 'Search Content');
+                } else {
+                    showResult('search-result', `Error: ${response.status} - ${data.message || 'Unknown error'}`, 'error');
+                    setButtonStatus(button, 'error', 'Search Content');
+                }
+            } catch (error) {
+                showResult('search-result', `Network Error: ${error.message}`, 'error');
+                setButtonStatus(button, 'error', 'Search Content');
+            }
+        }
+
+        async function runAllTests() {
+            const button = event.target;
+            setButtonStatus(button, 'loading', 'Running Tests');
+            
+            const results = [];
+            
+            // Test 1: Health
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                if (response.ok) {
+                    results.push('✅ Health Check: PASSED');
+                } else {
+                    results.push(`❌ Health Check: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                results.push(`❌ Health Check: FAILED (${error.message})`);
+            }
+
+            // Test 2: API
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1`);
+                const data = await response.json();
+                if (response.ok) {
+                    results.push('✅ API Documentation: PASSED');
+                } else {
+                    results.push(`❌ API Documentation: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                results.push(`❌ API Documentation: FAILED (${error.message})`);
+            }
+
+            // Test 3: Content
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content`);
+                const data = await response.json();
+                if (response.ok) {
+                    results.push('✅ Content Endpoint: PASSED');
+                } else {
+                    results.push(`❌ Content Endpoint: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                results.push(`❌ Content Endpoint: FAILED (${error.message})`);
+            }
+
+            // Test 4: Categories
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content/categories`);
+                const data = await response.json();
+                if (response.ok) {
+                    results.push('✅ Categories Endpoint: PASSED');
+                } else {
+                    results.push(`❌ Categories Endpoint: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                results.push(`❌ Categories Endpoint: FAILED (${error.message})`);
+            }
+
+            // Test 5: Search
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/content/search?q=meditation`);
+                const data = await response.json();
+                if (response.ok) {
+                    results.push('✅ Search Endpoint: PASSED');
+                } else {
+                    results.push(`❌ Search Endpoint: FAILED (${response.status})`);
+                }
+            } catch (error) {
+                results.push(`❌ Search Endpoint: FAILED (${error.message})`);
+            }
+
+            const summary = results.join('\n');
+            const passedCount = results.filter(r => r.includes('✅')).length;
+            const totalCount = results.length;
+
+            showResult('all-tests-result', 
+                `🧪 Test Results Summary:\n\n${summary}\n\n📊 Overall: ${passedCount}/${totalCount} tests passed\n\n${passedCount === totalCount ? '🎉 All tests passed! Your backend is working perfectly!' : '⚠️ Some tests failed. Check the individual results above.'}`, 
+                passedCount === totalCount ? 'success' : 'error'
+            );
+
+            if (passedCount === totalCount) {
+                setButtonStatus(button, 'success', 'All Tests Passed');
+            } else {
+                setButtonStatus(button, 'error', 'Some Tests Failed');
+            }
+        }
+
+        // Auto-test health on page load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 1000);
+        });
+    </script>
+</body>
+</html>
+
